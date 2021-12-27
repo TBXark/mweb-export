@@ -1,4 +1,4 @@
-module mweb-export
+module github.com/TBXark/mweb-export
 
 go 1.17
 
