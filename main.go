@@ -158,6 +158,6 @@ func main() {
 	makeCategoryTree(root, cat)
 	buffer.WriteString("# NoteBook\n\n")
 	tree(root, 0, &buffer)
-	fmt.Print(buffer.String())
-	//ioutil.WriteFile(path.Join(*lib, "README.md"), buffer.Bytes(), 0644)
+	//fmt.Print(buffer.String())
+	ioutil.WriteFile(path.Join(*lib, "README.md"), buffer.Bytes(), 0644)
 }
