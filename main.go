@@ -1,14 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
+	"flag"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
+	"io/ioutil"
+	"log"
+	"path"
+	"strings"
 )
-
-type Database struct {
-	db *sql.DB
-}
 
 type Category struct {
 	PID         uint64
@@ -25,14 +27,37 @@ type Article struct {
 	Media []string
 }
 
-func (d *Database) Open(path string) error {
-	db, err := sql.Open("sqlite3", path)
-	d.db = db
-	return err
+func (a *Article) update(root string) {
+	b, err := ioutil.ReadFile(path.Join(root, fmt.Sprintf("%d.md", root, a.AID)))
+	if err != nil {
+		log.Fatalf("Read %d file error", a.AID)
+	}
+	f := string(b)
+	line := strings.Split(f, "\n")
+	a.Name = line[0][2:]
+	//reg := regexp.MustCompile("!\\[[^\\]]*\\]\\((.*?)\\s*(\"(?:.*[^\"])\")?\\s*\\)")
+	//imgs := reg.FindAllString(f, -1)
+	//for _, img := range imgs {
+	//	fmt.Printf("find image: %s\n", img)
+	//}
 }
 
-func (d *Database) Categories() ([]*Category, error) {
-	row, err := d.db.Query("select pid, uuid, name from cat")
+func tree(cat *Category, deep int, buff *bytes.Buffer) {
+	space := ""
+	for i := 0; i < deep; i++ {
+		space = space + "  "
+	}
+	buff.WriteString(fmt.Sprintf("%s- %s\n", space, cat.Name))
+	for _, article := range cat.Article {
+		buff.WriteString(fmt.Sprintf("%s  - [%s](./docs/%d.md)\n", space, article.Name, article.AID))
+	}
+	for _, category := range cat.SubCategory {
+		tree(category, deep+1, buff)
+	}
+}
+
+func categories(db *sql.DB) ([]*Category, error) {
+	row, err := db.Query("select pid, uuid, name from cat")
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +79,8 @@ func (d *Database) Categories() ([]*Category, error) {
 	return temp, nil
 }
 
-func (d *Database) Article() ([]*Article, error) {
-	row, err := d.db.Query("select rid, aid from cat_article")
+func article(db *sql.DB) ([]*Article, error) {
+	row, err := db.Query("select rid, aid from cat_article")
 	if err != nil {
 		return nil, err
 	}
@@ -91,19 +116,46 @@ func makeCategoryTree(root *Category, input []*Category) []*Category {
 }
 
 func main() {
-	path := "/Users/tbxark/Desktop/Repos/Notebook/"
-	db := &Database{}
-	db.Open(path + "mainlib.db")
-	cat, _ := db.Categories()
+	lib := flag.String("path", "", "Path to MWebLibrary")
+	flag.Parse()
+
+	if *lib == "" {
+		log.Fatalf("You must set MWebLibrary path")
+	}
+
+	db, dErr := sql.Open("sqlite3", path.Join(*lib, "mainlib.db"))
+	if dErr != nil {
+		log.Fatalf("Open database fail: %v", dErr)
+	}
+
+	cat, cErr := categories(db)
+	if cErr != nil {
+		log.Fatalf("Read categories fail: %v", dErr)
+	}
+
+	art, aErr := article(db)
+	if aErr != nil {
+		log.Fatalf("Read article fail: %v", dErr)
+	}
+
+	catMap := map[uint64]*Category{}
 	var root *Category
+	var buffer bytes.Buffer
+
 	for _, category := range cat {
+		catMap[category.UUID] = category
 		if category.PID == 0 {
 			root = category
-			break
+		}
+	}
+	for _, article := range art {
+		article.update(path.Join(*lib, "docs"))
+		if c, ok := catMap[article.RID]; ok {
+			c.Article = append(c.Article, article)
 		}
 	}
 	makeCategoryTree(root, cat)
-	fmt.Print(root)
-	//art, _ := db.Article()
-	//fmt.Printf("Cat: %v, Art: %v", cat, art)
+	buffer.WriteString("# NoteBook\n\n")
+	tree(root, 0, &buffer)
+	ioutil.WriteFile(path.Join(*lib, "README.md"), buffer.Bytes(), 0644)
 }
