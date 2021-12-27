@@ -1,15 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"database/sql"
 	"flag"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
-	"io/ioutil"
 	"log"
+	"os"
 	"path"
-	"strings"
 )
 
 type Category struct {
@@ -28,18 +28,15 @@ type Article struct {
 }
 
 func (a *Article) update(root string) {
-	b, err := ioutil.ReadFile(path.Join(root, fmt.Sprintf("%d.md", a.AID)))
+	file, err := os.Open(path.Join(root, fmt.Sprintf("%d.md", a.AID)))
 	if err != nil {
-		log.Fatalf("Read %d file error", a.AID)
+		log.Fatal(err)
 	}
-	f := string(b)
-	line := strings.Split(f, "\n")
-	a.Name = line[0][2:]
-	//reg := regexp.MustCompile("!\\[[^\\]]*\\]\\((.*?)\\s*(\"(?:.*[^\"])\")?\\s*\\)")
-	//imgs := reg.FindAllString(f, -1)
-	//for _, img := range imgs {
-	//	fmt.Printf("find image: %s\n", img)
-	//}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Scan()
+	a.Name = scanner.Text()[2:]
 }
 
 func tree(cat *Category, deep int, buff *bytes.Buffer) {
