@@ -146,12 +146,14 @@ func main() {
 
 	for _, category := range cat {
 		catMap[category.UUID] = category
+		//fmt.Printf("%d: %s\n", category.UUID, category.Name)
 		if category.PID == 0 {
 			root = category
 		}
 	}
 	for _, article := range art {
 		article.update(path.Join(*lib, "docs"))
+		//fmt.Printf("%d-%d: %s\n", article.AID, article.RID, article.Name)
 		if c, ok := catMap[article.RID]; ok {
 			c.Article = append(c.Article, article)
 		}
@@ -159,5 +161,6 @@ func main() {
 	makeCategoryTree(root, cat)
 	buffer.WriteString("# NoteBook\n\n")
 	tree(root, 0, &buffer)
-	ioutil.WriteFile(path.Join(*lib, "README.md"), buffer.Bytes(), 0644)
+	fmt.Print(buffer.String())
+	//ioutil.WriteFile(path.Join(*lib, "README.md"), buffer.Bytes(), 0644)
 }
