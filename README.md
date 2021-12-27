@@ -14,7 +14,7 @@ go install github.com/TBXark/mweb-export@latest
 
 ## Usage
 
-实际使用中不推荐直接在`MWebLibrary`原始文件夹中使用`git`，避免多台设备同步`git`与iCloud发生冲突，可以另外新建新建一个`git`文件夹，需要同步的时候执行下面脚本，将`MWebLibrary`拷贝到`git`文件夹，并生成`README.md`文件并且自动push。
+实际使用中不推荐直接在`MWebLibrary`原始文件夹中使用`git`，避免多台设备同步`git`与iCloud发生冲突，可以另外新建新建一个`git`文件夹，需要同步的时候执行下面脚本，将`MWebLibrary`拷贝到`git`文件夹，并生成`README.md`文件并且自动`push`。
 
 
 ```shell
@@ -23,9 +23,9 @@ go install github.com/TBXark/mweb-export@latest
 /bin/rm -rf docs
 /bin/rm -f mainlib.lib
 /bin/rm -rf metadata
-cp ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/docs docs
 cp ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/mainlib.lib mainlib.lib
-cp ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/metadata metadata
+cp -R ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/docs docs
+cp -R ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/metadata metadata
 mweb-export -path=$(pwd)
 git add .
 git commit -a -m $(date -u +%Y-%m-%dT%H:%M:%SZ)
