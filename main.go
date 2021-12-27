@@ -28,7 +28,7 @@ type Article struct {
 }
 
 func (a *Article) update(root string) {
-	b, err := ioutil.ReadFile(path.Join(root, fmt.Sprintf("%d.md", root, a.AID)))
+	b, err := ioutil.ReadFile(path.Join(root, fmt.Sprintf("%d.md", a.AID)))
 	if err != nil {
 		log.Fatalf("Read %d file error", a.AID)
 	}
@@ -123,14 +123,16 @@ func main() {
 		log.Fatalf("You must set MWebLibrary path")
 	}
 
-	db, dErr := sql.Open("sqlite3", path.Join(*lib, "mainlib.db"))
+	sqlPath := path.Join(*lib, "mainlib.db")
+	log.Printf("Open lib: %s", sqlPath)
+	db, dErr := sql.Open("sqlite3", sqlPath)
 	if dErr != nil {
-		log.Fatalf("Open database fail: %v", dErr)
+		log.Fatalf("Open database  fail: %v", dErr)
 	}
 
 	cat, cErr := categories(db)
 	if cErr != nil {
-		log.Fatalf("Read categories fail: %v", dErr)
+		log.Fatalf("Read categories fail: %v", cErr)
 	}
 
 	art, aErr := article(db)
