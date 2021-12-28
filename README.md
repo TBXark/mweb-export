@@ -21,9 +21,9 @@ go install github.com/TBXark/mweb-export@latest
 #!/bin/bash
 
 /bin/rm -rf docs
-/bin/rm -f mainlib.lib
+/bin/rm -f mainlib.db
 /bin/rm -rf metadata
-cp ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/mainlib.lib mainlib.lib
+cp ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/mainlib.db mainlib.db
 cp -R ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/docs docs
 cp -R ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/metadata metadata
 mweb-export -path=$(pwd)
