@@ -114,15 +114,27 @@ func makeCategoryTree(root *Category, input []*Category) []*Category {
 }
 
 func main() {
-	lib := flag.String("path", "", "Path to MWebLibrary")
+	home, _ := os.UserHomeDir()
+	pwd, _ := os.Getwd()
+	libDefaultPath := home + "/Library/Containers/com.coderforart.MWeb3/Data/Library/Application Support/MWebLibrary"
+
+	lib := flag.String("path", libDefaultPath, "path to MWebLibrary")
+	target := flag.String("target", pwd, "export README.md directory")
+	mode := flag.String("mode", "debug", "'save': save file, 'debug': print only")
+	help := flag.Bool("help", false, "show usage")
+
 	flag.Parse()
+
+	if *help {
+		flag.Usage()
+		return
+	}
 
 	if *lib == "" {
 		log.Fatalf("You must set MWebLibrary path")
 	}
 
 	sqlPath := path.Join(*lib, "mainlib.db")
-	log.Printf("Open lib: %s", sqlPath)
 	db, dErr := sql.Open("sqlite3", sqlPath)
 	if dErr != nil {
 		log.Fatalf("Open database  fail: %v", dErr)
@@ -159,6 +171,12 @@ func main() {
 	makeCategoryTree(root, cat)
 	buffer.WriteString("# NoteBook\n\n")
 	tree(root, 0, &buffer)
-	//fmt.Print(buffer.String())
-	ioutil.WriteFile(path.Join(*lib, "README.md"), buffer.Bytes(), 0644)
+
+	if *mode == "save" {
+		ioutil.WriteFile(path.Join(*target, "README.md"), buffer.Bytes(), 0644)
+	} else if *mode == "debug" {
+		fmt.Print(buffer.String())
+	} else {
+		fmt.Print("Unknown mode")
+	}
 }

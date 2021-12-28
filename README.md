@@ -14,19 +14,30 @@ go install github.com/TBXark/mweb-export@latest
 
 ## Usage
 
-实际使用中不推荐直接在`MWebLibrary`原始文件夹中使用`git`，避免多台设备同步`git`与iCloud发生冲突，可以另外新建新建一个`git`文件夹，需要同步的时候执行下面脚本，将`MWebLibrary`拷贝到`git`文件夹，并生成`README.md`文件并且自动`push`。
+```
+Usage of mweb-export:
+  -help
+    	show usage
+  -mode string
+    	'file': save file, 'debug': print only (default "debug")
+  -path string
+    	path to MWebLibrary (default "~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application Support/MWebLibrary")
+  -target string
+    	export README.md directory (default "$(pwd)")
+```
 
+实际使用中不推荐直接在`MWebLibrary`原始文件夹中使用`git`，避免多台设备同步`git`与iCloud发生冲突，可以另外新建新建一个`git`文件夹，在`git`目录下添加下面脚本,需要同步的时候执行下面脚本，会自动将`MWebLibrary`拷贝到`git`文件夹，并生成`README.md`文件并且自动`push`。
 
 ```shell
 #!/bin/bash
 
-/bin/rm -rf docs
+/bin/rm -rf docs # 删除所有文件，重新拷贝，避免有已删除的文件继续留在git
 /bin/rm -f mainlib.db
 /bin/rm -rf metadata
 cp ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/mainlib.db mainlib.db
 cp -R ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/docs docs
 cp -R ~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application\ Support/MWebLibrary/metadata metadata
-mweb-export -path=$(pwd)
+mweb-export -mode=save
 git add .
 git commit -a -m $(date -u +%Y-%m-%dT%H:%M:%SZ)
 git push origin master
