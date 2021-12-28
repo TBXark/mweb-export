@@ -1,6 +1,7 @@
 NAME=mweb-export
 BINDIR=bin
 GOBUILD=go build
+VERSION=$(shell git describe --tags || echo "unknown version")
 
 PLATFORM_LIST = \
 	darwin-amd64 \
