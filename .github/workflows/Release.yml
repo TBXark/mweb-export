@@ -1,45 +1,27 @@
-name: Release
-on: [push]
+on:
+  push: # 每次 push 的时候触发
+
+name: Build Release
 jobs:
-  build:
+  release:
+    if: startsWith(github.ref, 'refs/tags/') # 只有这次 Commit 是 创建 Tag 时，才进行后续发布操作
     runs-on: ubuntu-latest
     steps:
-      - name: Get latest go version
-        id: version
-        run: |
-          echo ::set-output name=go_version::$(curl -s https://raw.githubusercontent.com/actions/go-versions/main/versions-manifest.json | grep -oE '"version": "[0-9]{1}.[0-9]{1,}(.[0-9]{1,})?"' | head -1 | cut -d':' -f2 | sed 's/ //g; s/"//g')
-
-      - name: Setup Go
-        uses: actions/setup-go@v2
+      - uses: actions/checkout@master # checkout 代码
+      - uses: actions/setup-go@v2 # 配置 Go 环境
         with:
-          go-version: ${{ steps.version.outputs.go_version }}
+          go-version: "1.7" # 改成自己的版本
 
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+      - run: go build -o ./linux_amd64/mweb_export . # 这 3 条是交叉编译 Go 的指令，酌情修改。
+      - run: CGO_ENABLED=1 GOOS=windows GOARCH=amd64 go build -o ./windows_amd64/mweb_export.exe .
+      - run: CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -o ./darwin_amd64/mweb_export .
 
-      - name: Cache go module
-        uses: actions/cache@v2
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - name: Get dependencies, run test
-        run: |
-          go test ./...
-
-      - name: Build
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          NAME: clash
-          BINDIR: bin
-        run: make -j releases
-
-      - name: Upload Release
+      - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          token: ${{ secrets.RELEASE_TOKEN }}
-          files: bin/*
-          draft: true
+        with: # 将下述可执行文件 release 上去
+          files: |
+            ./linux_amd64/mweb_export
+            ./windows_amd64/mweb_export.exe
+            ./darwin_amd64/mweb_export
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
