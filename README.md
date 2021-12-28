@@ -3,7 +3,7 @@
 [![Build Release](https://github.com/TBXark/mweb-export/actions/workflows/Release.yml/badge.svg)](https://github.com/TBXark/mweb-export/actions/workflows/Release.yml)
 
 用于生成 Mweb `git`备份 `README` 目录文件的工具, MWeb可以使用iCloud备份[https://zh.mweb.im/mweb4qa.html](https://zh.mweb.im/mweb4qa.html)，同时可以将`~/Library/Containers/com.coderforart.MWeb3/Data/Library/Application Support/MWebLibrary`使用git备份到github，但是实际使用中，备份到github之后文件夹结构没有了，文件名也变成了`UUID`。完全没有可读性。
-所以`mweb-export`就是一个解析Mweb数据库并声称一个包含整个目录结构和索引跳转的README文件。
+所以`mweb-export`就是一个解析Mweb数据库并生成一个包含整个目录结构和索引跳转的README文件。
 
 
 
