@@ -10,11 +10,15 @@
 
 ## Install
 
-
+### Go
 ```shell
 go install github.com/TBXark/mweb-export@latest
 ```
 
+### Brew
+```shell
+brew install --build-from-source tbxark/repo/xcode-tool
+```
 
 
 
