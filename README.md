@@ -43,6 +43,8 @@ Usage of mweb-export:
 ```shell
 #!/bin/bash
 
+git stash --include-untracked
+git pull
 /bin/rm -rf docs # 删除所有文件，重新拷贝，避免有已删除的文件继续留在git
 /bin/rm -f mainlib.db
 /bin/rm -rf metadata
@@ -53,4 +55,5 @@ mweb-export -mode=save
 git add .
 git commit -a -m $(date -u +%Y-%m-%dT%H:%M:%SZ)
 git push origin master
+git stash clear
 ```
