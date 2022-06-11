@@ -11,6 +11,7 @@ import (
 	_ "modernc.org/sqlite"
 	"os"
 	"path"
+	"sort"
 )
 
 // model
@@ -39,6 +40,12 @@ func (a *Article) readDetail(root string) {
 	scanner := bufio.NewScanner(file)
 	scanner.Scan()
 	a.Name = scanner.Text()[2:]
+}
+
+func (c *Category) sortArticleByName() {
+	sort.Slice(c.Article, func(i, j int) bool {
+		return c.Article[i].Name > c.Article[j].Name
+	})
 }
 
 // converter
@@ -87,6 +94,10 @@ func bindArticleToCategory(cat []*Category, art []*Article) *Category {
 			c.Article = append(c.Article, article)
 		}
 	}
+
+	for _, category := range cat {
+		category.sortArticleByName()
+	}
 	return root
 }
 
@@ -114,7 +125,7 @@ func loadDatasource() (cat []*Category, art []*Article) {
 }
 
 func loadCategories(db *sql.DB) ([]*Category, error) {
-	row, err := db.Query("select pid, uuid, name from cat")
+	row, err := db.Query("select pid, uuid, name from cat order by sort")
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +148,8 @@ func loadCategories(db *sql.DB) ([]*Category, error) {
 }
 
 func loadArticles(db *sql.DB) ([]*Article, error) {
-	row, err := db.Query("select rid, aid from cat_article")
+	row, err := db.Query("select rid, aid from cat_article;")
+	// 	row, err := db.Query("select cat_article.rid, cat_article.aid from cat_article left join article on cat_article.aid = article.uuid order by  article.sort ;")
 	if err != nil {
 		return nil, err
 	}
