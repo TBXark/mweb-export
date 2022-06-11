@@ -6,12 +6,14 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"io/ioutil"
 	"log"
+	_ "modernc.org/sqlite"
 	"os"
 	"path"
 )
+
+// model
 
 type Category struct {
 	PID         uint64
@@ -28,19 +30,20 @@ type Article struct {
 	Media []string
 }
 
-func (a *Article) update(root string) {
+func (a *Article) readDetail(root string) {
 	file, err := os.Open(path.Join(root, fmt.Sprintf("%d.md", a.AID)))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
-
 	scanner := bufio.NewScanner(file)
 	scanner.Scan()
 	a.Name = scanner.Text()[2:]
 }
 
-func tree(cat *Category, deep int, buff *bytes.Buffer) {
+// converter
+
+func convertTreeToMarkdown(cat *Category, deep int, buff *bytes.Buffer) {
 	space := ""
 	for i := 0; i < deep; i++ {
 		space = space + "  "
@@ -50,11 +53,67 @@ func tree(cat *Category, deep int, buff *bytes.Buffer) {
 		buff.WriteString(fmt.Sprintf("%s  - [%s](./docs/%d.md)\n", space, article.Name, article.AID))
 	}
 	for _, category := range cat.SubCategory {
-		tree(category, deep+1, buff)
+		convertTreeToMarkdown(category, deep+1, buff)
 	}
 }
 
-func categories(db *sql.DB) ([]*Category, error) {
+func convertDataToTree(root *Category, input []*Category) []*Category {
+	var otherNode []*Category
+	for _, category := range input {
+		if category.PID == root.UUID {
+			root.SubCategory = append(root.SubCategory, category)
+		} else {
+			otherNode = append(otherNode, category)
+		}
+	}
+	for _, category := range root.SubCategory {
+		otherNode = convertDataToTree(category, otherNode)
+	}
+	return otherNode
+}
+
+func bindArticleToCategory(cat []*Category, art []*Article) *Category {
+	catMap := map[uint64]*Category{}
+	var root *Category
+	for _, category := range cat {
+		catMap[category.UUID] = category
+		if category.PID == 0 {
+			root = category
+		}
+	}
+	for _, article := range art {
+		article.readDetail(path.Join(lib, "docs"))
+		if c, ok := catMap[article.RID]; ok {
+			c.Article = append(c.Article, article)
+		}
+	}
+	return root
+}
+
+// dao
+func loadDatasource() (cat []*Category, art []*Article) {
+	if lib == "" {
+		log.Fatalf("path to MWebLibrary is empty")
+	}
+	sqlPath := path.Join(lib, "mainlib.db")
+	db, err := sql.Open("sqlite", sqlPath)
+	if err != nil {
+		log.Fatalf("open sqlite3 failed: %s", err)
+	}
+	defer db.Close()
+
+	cat, err = loadCategories(db)
+	if err != nil {
+		log.Fatalf("load categories failed: %s", err)
+	}
+	art, err = loadArticles(db)
+	if err != nil {
+		log.Fatalf("load articles failed: %s", err)
+	}
+	return cat, art
+}
+
+func loadCategories(db *sql.DB) ([]*Category, error) {
 	row, err := db.Query("select pid, uuid, name from cat")
 	if err != nil {
 		return nil, err
@@ -77,7 +136,7 @@ func categories(db *sql.DB) ([]*Category, error) {
 	return temp, nil
 }
 
-func article(db *sql.DB) ([]*Article, error) {
+func loadArticles(db *sql.DB) ([]*Article, error) {
 	row, err := db.Query("select rid, aid from cat_article")
 	if err != nil {
 		return nil, err
@@ -98,85 +157,51 @@ func article(db *sql.DB) ([]*Article, error) {
 	return temp, nil
 }
 
-func makeCategoryTree(root *Category, input []*Category) []*Category {
-	var otherNode []*Category
-	for _, category := range input {
-		if category.PID == root.UUID {
-			root.SubCategory = append(root.SubCategory, category)
-		} else {
-			otherNode = append(otherNode, category)
-		}
-	}
-	for _, category := range root.SubCategory {
-		otherNode = makeCategoryTree(category, otherNode)
-	}
-	return otherNode
-}
+var (
+	lib    string
+	target string
+	mode   string
+	help   bool
+)
 
-func main() {
+func init() {
 	home, _ := os.UserHomeDir()
 	pwd, _ := os.Getwd()
 	libDefaultPath := home + "/Library/Containers/com.coderforart.MWeb3/Data/Library/Application Support/MWebLibrary"
 
-	lib := flag.String("path", libDefaultPath, "path to MWebLibrary")
-	target := flag.String("target", pwd, "export README.md directory")
-	mode := flag.String("mode", "debug", "'save': save file, 'debug': print only")
-	help := flag.Bool("help", false, "show usage")
+	flag.StringVar(&lib, "path", libDefaultPath, "path to MWebLibrary")
+	flag.StringVar(&target, "target", pwd, "export README.md directory")
+	flag.StringVar(&mode, "mode", "debug", "'save': save file, 'debug': print only")
+	flag.BoolVar(&help, "help", false, "show usage")
 
 	flag.Parse()
+}
 
-	if *help {
+func main() {
+
+	if help {
 		flag.Usage()
 		return
 	}
 
-	if *lib == "" {
-		log.Fatalf("You must set MWebLibrary path")
-	}
-
-	sqlPath := path.Join(*lib, "mainlib.db")
-	db, dErr := sql.Open("sqlite3", sqlPath)
-	if dErr != nil {
-		log.Fatalf("Open database  fail: %v", dErr)
-	}
-
-	cat, cErr := categories(db)
-	if cErr != nil {
-		log.Fatalf("Read categories fail: %v", cErr)
-	}
-
-	art, aErr := article(db)
-	if aErr != nil {
-		log.Fatalf("Read article fail: %v", dErr)
-	}
-
-	catMap := map[uint64]*Category{}
-	var root *Category
 	var buffer bytes.Buffer
+	cat, art := loadDatasource()
+	root := bindArticleToCategory(cat, art)
 
-	for _, category := range cat {
-		catMap[category.UUID] = category
-		//fmt.Printf("%d: %s\n", category.UUID, category.Name)
-		if category.PID == 0 {
-			root = category
-		}
-	}
-	for _, article := range art {
-		article.update(path.Join(*lib, "docs"))
-		//fmt.Printf("%d-%d: %s\n", article.AID, article.RID, article.Name)
-		if c, ok := catMap[article.RID]; ok {
-			c.Article = append(c.Article, article)
-		}
-	}
-	makeCategoryTree(root, cat)
 	buffer.WriteString("# NoteBook\n\n")
-	tree(root, 0, &buffer)
-
-	if *mode == "save" {
-		ioutil.WriteFile(path.Join(*target, "README.md"), buffer.Bytes(), 0644)
-	} else if *mode == "debug" {
-		fmt.Print(buffer.String())
-	} else {
-		fmt.Print("Unknown mode")
+	convertDataToTree(root, cat)
+	convertTreeToMarkdown(root, 0, &buffer)
+	switch mode {
+	case "save":
+		err := ioutil.WriteFile(path.Join(target, "README.md"), buffer.Bytes(), 0644)
+		if err != nil {
+			log.Fatalf("Write file fail: %v", err)
+			return
+		}
+	case "debug":
+		fmt.Printf("%s", buffer.String())
+	default:
+		log.Fatalf("Unknown mode: %s", mode)
 	}
+
 }
