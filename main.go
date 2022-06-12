@@ -31,8 +31,8 @@ type Article struct {
 	Media []string
 }
 
-func (a *Article) readDetail(root string) {
-	file, err := os.Open(path.Join(root, fmt.Sprintf("%d.md", a.AID)))
+func (a *Article) readDetail(dir string) {
+	file, err := os.Open(path.Join(dir, fmt.Sprintf("%d.md", a.AID)))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func loadCategories(db *sql.DB) ([]*Category, error) {
 
 func loadArticles(db *sql.DB) ([]*Article, error) {
 	row, err := db.Query("select rid, aid from cat_article;")
-	// 	row, err := db.Query("select cat_article.rid, cat_article.aid from cat_article left join article on cat_article.aid = article.uuid order by  article.sort ;")
+	// 	row, err := db.Query("select cat_article.rid, cat_article.aid from cat_article left join article on cat_article.aid = article.uuid order by article.sort ;")
 	if err != nil {
 		return nil, err
 	}
