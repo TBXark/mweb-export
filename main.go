@@ -6,12 +6,12 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	_ "modernc.org/sqlite"
 	"os"
 	"path"
 	"sort"
+
+	_ "modernc.org/sqlite"
 )
 
 // model
@@ -205,7 +205,7 @@ func main() {
 	convertTreeToMarkdown(root, 0, &buffer)
 	switch mode {
 	case "save":
-		err := ioutil.WriteFile(path.Join(target, "README.md"), buffer.Bytes(), 0644)
+		err := os.WriteFile(path.Join(target, "README.md"), buffer.Bytes(), 0644)
 		if err != nil {
 			log.Fatalf("Write file fail: %v", err)
 			return
